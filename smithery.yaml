@@ -1,14 +1,14 @@
 name: ararahq-mcp
 displayName: AraraHQ MCP
-description: Official AraraHQ MCP for operating WhatsApp customer service across support, billing and scheduling.
+description: Official AraraHQ MCP for WhatsApp broadcasts and campaigns. Send to your base, see what came back, answer who replied.
 homepage: https://ararahq.com/mcp
 repository: https://github.com/ararahq/mcp
 license: MIT
 author: AraraHQ
 keywords:
   - whatsapp
-  - customer-service
-  - atendimento
+  - broadcast
+  - campaigns
   - ararahq
   - oauth
 

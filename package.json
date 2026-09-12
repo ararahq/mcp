@@ -1,7 +1,7 @@
 {
   "name": "@ararahq/mcp",
-  "version": "5.0.0",
-  "description": "The official AraraHQ MCP server for operating WhatsApp support, billing and scheduling with OAuth.",
+  "version": "6.0.0",
+  "description": "The official AraraHQ MCP server for WhatsApp broadcasts and campaigns: send, measure what came back, reply.",
   "main": "build/index.js",
   "bin": {
     "ararahq-mcp": "build/index.js"
@@ -14,8 +14,8 @@
   "type": "module",
   "scripts": {
     "clean": "node --eval \"require('node:fs').rmSync('build',{recursive:true,force:true})\"",
-    "build": "npm run clean && tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
+    "build": "npm run clean && tsc -p tsconfig.build.json && node scripts/build-ui.mjs",
+    "typecheck": "tsc --noEmit && tsc -p src/ui/app/tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
@@ -23,6 +23,7 @@
     "format:check": "prettier --check .",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "start": "node build/index.js",
+    "build:ui": "node scripts/build-ui.mjs",
     "dev": "tsx watch src/index.ts --stdio",
     "prepublishOnly": "npm run build"
   },
@@ -39,9 +40,10 @@
     "windsurf",
     "chatgpt",
     "ararahq",
-    "customer-support",
-    "customer-service",
-    "atendimento",
+    "broadcast",
+    "campaigns",
+    "mcp-apps",
+    "disparo",
     "ai-agent",
     "brazil"
   ],
@@ -59,7 +61,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "axios": "^1.18.0",
     "dotenv": "^17.3.1",
     "express": "^4.22.1",
@@ -71,6 +74,7 @@
     "@eslint/js": "^9.39.2",
     "@types/express": "^4.17.21",
     "@types/node": "^22.19.11",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.2",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",

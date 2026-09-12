@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "noEmit": true,
@@ -11,7 +12,9 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "resolveJsonModule": true,
+    "allowJs": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*", "vitest.config.ts", "eslint.config.js"]
+  "include": ["src/**/*", "vitest.config.ts", "eslint.config.js", "scripts/**/*.mjs"],
+  "exclude": ["src/ui/app/**"]
 }

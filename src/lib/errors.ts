@@ -13,6 +13,18 @@ export class AraraError extends Error {
   }
 }
 
+const DEFAULT_CODES: Record<number, string> = {
+  401: "UNAUTHENTICATED",
+  403: "FORBIDDEN",
+  404: "NOT_FOUND",
+  429: "RATE_LIMITED",
+};
+const DEFAULT_MESSAGES: Record<number, string> = {
+  401: "OAuth authentication is required or has expired.",
+  403: "This account is not allowed to do that.",
+  404: "The requested resource does not exist in this organization.",
+};
+
 const parseRetryAfter = (value: unknown): number | undefined => {
   if (typeof value !== "string" || value.length === 0) return undefined;
   const seconds = Number.parseInt(value, 10);
@@ -41,17 +53,11 @@ export const toAraraError = (error: unknown): AraraError => {
       ? (candidate.error as Record<string, unknown>)
       : candidate;
   const code =
-    typeof nested.code === "string"
-      ? nested.code
-      : status === 429
-        ? "RATE_LIMITED"
-        : "UPSTREAM_ERROR";
+    typeof nested.code === "string" ? nested.code : (DEFAULT_CODES[status] ?? "UPSTREAM_ERROR");
   const message =
     typeof nested.message === "string"
       ? nested.message
-      : status === 401
-        ? "OAuth authentication is required or has expired."
-        : "AraraHQ API request failed.";
+      : (DEFAULT_MESSAGES[status] ?? "AraraHQ API request failed.");
   const retryAfterSeconds = parseRetryAfter(error.response?.headers["retry-after"]);
   return new AraraError(code, message, status, status === 429 || status >= 500, retryAfterSeconds);
 };

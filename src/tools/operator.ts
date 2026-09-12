@@ -4,7 +4,8 @@ import { z } from "zod";
 import { adminRequest } from "../lib/admin.js";
 import { apiRequest } from "../lib/api.js";
 import { assertOperatorAllowed } from "../lib/operator-access.js";
-import { jsonValueSchema, templatesSchema } from "../lib/schemas.js";
+import type { templatesSchema } from "../lib/schemas.js";
+import { jsonValueSchema, pagedTemplatesSchema } from "../lib/schemas.js";
 import { execute } from "../mcp/result.js";
 import {
   destructive,
@@ -12,7 +13,7 @@ import {
   readOnly,
   register as registerSharedTool,
   write,
-} from "./index.js";
+} from "./register.js";
 
 const idSchema = z.string().uuid();
 const amountSchema = z.number().positive().max(1_000_000);
@@ -76,9 +77,9 @@ const register = (
   annotations: typeof readOnly,
   handler: (input: Record<string, unknown>) => Promise<unknown>,
 ): void => {
-  registerSharedTool(server, name, description, inputSchema, annotations, handler, () =>
-    assertOperatorAllowed(),
-  );
+  registerSharedTool(server, name, description, inputSchema, annotations, handler, {
+    gate: () => assertOperatorAllowed(),
+  });
 };
 
 export const OPERATOR_TOOL_NAMES = [
@@ -188,7 +189,9 @@ export const registerOperatorTools = (server: McpServer): void => {
     readOnly,
     async (input) =>
       execute(async () => {
-        const templates = await apiRequest("/v1/templates", { schema: templatesSchema });
+        const templates = await apiRequest("/v1/templates?size=100", {
+          schema: pagedTemplatesSchema,
+        });
         const filter = typeof input.filter === "string" ? input.filter : undefined;
         const data = filterTemplates(templates, filter);
         return { data, message: `${data.length} template(s) loaded.` };

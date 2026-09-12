@@ -7,8 +7,9 @@ export default tseslint.config(
   ...tseslint.configs.recommendedTypeChecked,
   {
     languageOptions: {
+      globals: { process: "readonly", Buffer: "readonly" },
       parserOptions: {
-        projectService: true,
+        projectService: { allowDefaultProject: [] },
         tsconfigRootDir: import.meta.dirname,
       },
     },

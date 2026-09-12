@@ -1,18 +1,18 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiRequest } from "../lib/api.js";
 import {
-  coverageSchema,
+  balanceSchema,
+  campaignListSchema,
   identitySchema,
   numbersSchema,
+  pagedTemplatesSchema,
   planSchema,
-  routineSchema,
-  templatesSchema,
-  todaySchema,
 } from "../lib/schemas.js";
-import { z } from "zod";
+
+const RECENT_CAMPAIGNS_SIZE = 10;
+const APPROVED_STATUS = "APPROVED";
 
 const json = (value: unknown): string => JSON.stringify(value, null, 2);
-const routinesResponseSchema = z.object({ data: z.array(routineSchema) });
 
 const registerJsonResource = (
   server: McpServer,
@@ -60,32 +60,14 @@ export const registerAllResources = (server: McpServer): void => {
     "organization",
     "arara://organization",
     "Organization",
-    "Authenticated identity and current AraraHQ plan.",
+    "Authenticated identity, current plan and wallet balance.",
     async () => {
-      const [identity, plan] = await Promise.all([
+      const [identity, plan, balance] = await Promise.all([
         apiRequest("/auth/me", { schema: identitySchema }),
         apiRequest("/v1/organizations/me/plan", { schema: planSchema }),
+        apiRequest("/dashboard/wallet/balance", { schema: balanceSchema }),
       ]);
-      return { identity, plan };
-    },
-  );
-  registerJsonResource(
-    server,
-    "operation_health",
-    "arara://operation/health",
-    "Operation health",
-    "Today, channel health and published Atendimento routines.",
-    async () => {
-      const [today, numbers, routines] = await Promise.all([
-        apiRequest("/v1/operation/today", { schema: todaySchema }),
-        apiRequest("/v1/organizations/me/numbers", { schema: numbersSchema }),
-        apiRequest("/v1/operation/routines", { schema: routinesResponseSchema }),
-      ]);
-      return {
-        today,
-        channels: numbers,
-        publishedRoutines: routines.data.filter((routine) => routine.published),
-      };
+      return { identity, plan, balance };
     },
   );
   registerJsonResource(
@@ -93,28 +75,35 @@ export const registerAllResources = (server: McpServer): void => {
     "approved_templates",
     "arara://templates/approved",
     "Approved templates",
-    "Templates that Meta currently allows for sending.",
+    "Templates Meta currently allows for sending. Use their names in broadcast and send_whatsapp.",
     async () => {
-      const templates = await apiRequest("/v1/templates", { schema: templatesSchema });
-      return templates.filter(
-        (template) => template.providerStatus === "APPROVED" && template.availableForSending,
-      );
+      const params = new URLSearchParams({ status: APPROVED_STATUS, size: "100" });
+      const templates = await apiRequest(`/v1/templates?${params.toString()}`, {
+        schema: pagedTemplatesSchema,
+      });
+      return templates.filter((template) => template.availableForSending);
+    },
+  );
+  registerJsonResource(
+    server,
+    "recent_campaigns",
+    "arara://campaigns/recent",
+    "Recent campaigns",
+    "Latest broadcasts with status, counts and cost.",
+    async () => {
+      const params = new URLSearchParams({ page: "0", size: String(RECENT_CAMPAIGNS_SIZE) });
+      const result = await apiRequest(`/v1/campaigns?${params.toString()}`, {
+        schema: campaignListSchema,
+      });
+      return result.data;
     },
   );
   registerJsonResource(
     server,
     "channels",
     "arara://channels",
-    "WhatsApp channels",
-    "Configured numbers and slot state for this organization.",
+    "WhatsApp numbers",
+    "Configured sending numbers and slot state for this organization.",
     () => apiRequest("/v1/organizations/me/numbers", { schema: numbersSchema }),
-  );
-  registerJsonResource(
-    server,
-    "coverage",
-    "arara://coverage",
-    "Service coverage",
-    "Working hours and after-hours policy for Atendimento.",
-    () => apiRequest("/v1/operation/coverage", { schema: coverageSchema }),
   );
 };
