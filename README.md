@@ -1,18 +1,43 @@
 # AraraHQ MCP
 
-Official Model Context Protocol server for operating AraraHQ Atendimento across support, billing and scheduling.
+Official Model Context Protocol server for AraraHQ: talk to your whole WhatsApp base, see what came back, answer who replied.
 
-Version 5 is a clean break from the legacy CPaaS-oriented server. Node.js is the only canonical implementation, OAuth is the authentication boundary, and both the npm scope and public repository are owned by AraraHQ: [`@ararahq/mcp`](https://www.npmjs.com/package/@ararahq/mcp) and [`ararahq/mcp`](https://github.com/ararahq/mcp).
+Node.js is the only implementation, OAuth is the authentication boundary, and both the npm scope and public repository are owned by AraraHQ: [`@ararahq/mcp`](https://www.npmjs.com/package/@ararahq/mcp) and [`ararahq/mcp`](https://github.com/ararahq/mcp).
 
 ## What it exposes
 
-- Atendimento: today queue, paginated conversation discovery and timeline, claim, reply and close.
-- Automations: list and inspect configured automations.
-- Campaigns: preflight and idempotent publication tied to a published Atendimento routine.
-- WhatsApp operations: single-message send, delivery lookup, templates, contacts and opt-outs.
-- Context: organization, operational health, approved templates, channels and coverage.
+Nine tools, on purpose. An agent works better with a few actions that accept what a person knows by heart (a name, a phone in any format) and resolve the rest.
+
+| Tool                | What it does                                                                                                         |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `whoami`            | Who is authenticated, which organization sends, plan and wallet balance.                                             |
+| `send_whatsapp`     | One message to one person: free text inside the 24h window, or an approved template with variables any time.         |
+| `broadcast`         | One approved template to up to 1000 people as a campaign. Dry run by default (preview and cost), A/B and scheduling. |
+| `campaign_report`   | Recent campaigns, or the full report of one: sent, delivered, read, clicked, replied, converted, blocked, cost.      |
+| `check_status`      | Did it arrive? Is the 24h window open? Was the template approved?                                                    |
+| `create_template`   | Submit a template for Meta approval, with header, footer, samples and up to 2 buttons.                               |
+| `save_contacts`     | Create or update up to 1000 contacts so you can message by name.                                                     |
+| `opt_out`           | Record that someone asked to stop. Every later send to them is blocked.                                              |
+| `read_conversation` | The raw message timeline with one person, newest first, so you can judge a reply before answering.                   |
+
+Resources (`arara://organization`, `arara://templates/approved`, `arara://campaigns/recent`, `arara://channels`) give read-only context without a tool call. Prompts `plan_broadcast`, `campaign_review` and `reply_to_responses` package the three everyday flows and always stop for approval before a write.
 
 Every tool returns both human-readable content and stable structured content. Write tools carry MCP safety annotations. Credentials never appear in tool inputs or output.
+
+Operator tools (`create_api_key`, `list_api_keys`, `revoke_api_key`, `configure_webhook_route`, `list_templates`, `delete_template`, `template_health`, `list_failures`, `get_balance`, `add_credit`, `remove_credit`, `list_transactions`) exist for the AraraHQ team only and are gated server-side by an e-mail allowlist and an admin secret.
+
+## Panels (MCP Apps)
+
+Four tools ship an interactive panel that hosts with MCP Apps support (Claude Desktop, claude.ai, ChatGPT, VS Code) render inline. Every panel reads the same structured content the text fallback uses, so clients without panel support lose nothing.
+
+| Tool                | Panel                                                                                        |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| `campaign_report`   | Funnel with animated bars, headline numbers, block reasons, live refresh while sending.      |
+| `broadcast`         | Phone mockup of the rendered message, audience and cost, approve button, then live delivery. |
+| `check_status`      | Delivery timeline (accepted, sent, delivered, read) that polls until a final state.          |
+| `read_conversation` | Chat thread with an inline reply box that calls `send_whatsapp`.                             |
+
+Panels are single-file HTML bundles built by `scripts/build-ui.mjs` into `build/ui/` and served as `ui://arara/<panel>.html` resources with the `text/html;profile=mcp-app` MIME type. They call tools through the host (`callServerTool`) and hand follow-ups back to the chat (`sendMessage`); they never hold credentials.
 
 ## Local installation
 
@@ -67,11 +92,14 @@ Protected Resource Metadata is served at:
 
 AraraHQ currently issues installed-client OAuth tokens through its device authorization flow. Hosted clients must supply a valid AraraHQ OAuth bearer token; the MCP does not proxy credentials or mint tokens.
 
-## Tool catalog
+## Behavior worth knowing
 
-`whoami`, `get_today`, `find_conversations`, `get_conversation`, `reply_to_conversation`, `claim_conversation`, `close_conversation`, `list_automations`, `get_automation`, `prepare_campaign`, `publish_campaign`, `send_whatsapp`, `check_message`, `save_contacts`, `create_template`, `get_template_status`, `opt_out`.
-
-Campaign publication validates that the Meta template is approved and available, and that its destination routine (`support`, `billing` or `scheduling`) is published. Message acceptance is reported as queued—not delivered—and delivery is checked separately.
+- `to` accepts a phone in any spelling or a saved contact name. Brazilian numbers get `+55` and the ninth digit when missing. An ambiguous name fails with the candidates instead of guessing.
+- Free text outside the 24h window is refused by Meta. `send_whatsapp` turns that refusal into a list of your approved templates.
+- `broadcast` never drops recipients silently: names that do not resolve are returned next to the campaign id.
+- Message acceptance means queued, not delivered. Delivery is checked with `check_status`.
+- Every mutating call carries an `Idempotency-Key`, so retries are safe.
+- `broadcast` is a dry run unless `dryRun` is false. The preview resolves names, renders the template with the first contact's variables and calls the cost estimator, so approval happens with the real numbers.
 
 ## Development
 
@@ -84,7 +112,7 @@ npm pack --dry-run
 
 The server defaults to stdio. Use `MCP_TRANSPORT=http npm start` for Streamable HTTP. Override the API only for controlled environments with `ARARA_API_URL`.
 
-The former unscoped package `ararahq-mcp` is the frozen v4 distribution. New installations and every v5 release use `@ararahq/mcp`.
+The former unscoped package `ararahq-mcp` is the frozen v4 distribution. Version 5 was an Atendimento-oriented rewrite that never matched the product; version 6 is the broadcast-first server described here.
 
 ## Security
 

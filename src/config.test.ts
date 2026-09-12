@@ -13,10 +13,10 @@ describe("public contract", () => {
     expect(DEFAULT_API_BASE_URL).toBe("https://api.ararahq.com/api");
   });
 
-  it("contains no legacy v4 tool aliases", () => {
+  it("contains no Atendimento-era or credential tools", () => {
     expect(new Set(TOOL_NAMES).size).toBe(TOOL_NAMES.length);
-    expect(TOOL_NAMES).not.toContain("broadcast");
-    expect(TOOL_NAMES).not.toContain("create_smart_link");
+    expect(TOOL_NAMES).not.toContain("get_today");
+    expect(TOOL_NAMES).not.toContain("publish_campaign");
     expect(TOOL_NAMES).not.toContain("login");
   });
 });
