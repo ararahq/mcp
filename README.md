@@ -75,6 +75,17 @@ npx -y @ararahq/mcp logout
 
 The hosted server uses stateless MCP Streamable HTTP at `POST /mcp`. It accepts OAuth bearer tokens only in the `Authorization` header. Query-string credentials, API-key tool arguments, legacy SSE endpoints, permissive CORS and debug endpoints do not exist.
 
+One Web Standard handler (`src/transports/web.ts`) serves every runtime. Host and origin allowlists, the OAuth challenge, the protected resource metadata and the panel assets behave the same everywhere.
+
+**Cloudflare Workers** is the production target. `wrangler.jsonc` declares the assets binding for the panels, a rate limiter and the public variables; the native keychain module is aliased to a stub so it never enters the bundle. A merge on `main` deploys through `.github/workflows/deploy.yml` once `CLOUDFLARE_API_TOKEN` exists.
+
+```bash
+npm run cf:dev      # wrangler dev on http://127.0.0.1:8787
+npm run cf:deploy   # build + wrangler deploy to mcp.ararahq.com (and the workers.dev fallback)
+```
+
+**Node** remains available for local runs of the hosted mode. It is a thin Express adapter over the same handler:
+
 ```bash
 MCP_TRANSPORT=http \
 PORT=3333 \

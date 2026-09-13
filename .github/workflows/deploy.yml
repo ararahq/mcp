@@ -1,0 +1,47 @@
+name: Deploy
+
+# Merge na main deploya o servidor hospedado no Cloudflare Workers (wrangler deploy),
+# que atende mcp.ararahq.com pela rota do wrangler.jsonc.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+
+      # Sem o token da Cloudflare o autodeploy nao roda. Pula com aviso em vez de
+      # falhar vermelho; crie o secret CLOUDFLARE_API_TOKEN pra ligar.
+      - name: Cloudflare token configurado?
+        id: guard
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN ausente. Autodeploy inativo."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.guard.outputs.ready == 'true'
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
+      - if: steps.guard.outputs.ready == 'true'
+        run: npm ci
+      - if: steps.guard.outputs.ready == 'true'
+        run: npm run build
+      - if: steps.guard.outputs.ready == 'true'
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
