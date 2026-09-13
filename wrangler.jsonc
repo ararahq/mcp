@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ararahq-mcp",
+  "main": "src/worker.ts",
+  "compatibility_date": "2025-09-01",
+  // nodejs_compat: AsyncLocalStorage (contexto do bearer por request) e process.env
+  // populado a partir de `vars`. Sem isso o SDK do MCP nem carrega.
+  "compatibility_flags": ["nodejs_compat"],
+  // Produção: o DNS de mcp.ararahq.com é proxied pela Cloudflare, então esta rota
+  // intercepta no edge antes da EC2 (mesmo cutover do dash em 10/09). Reversível
+  // removendo a rota. A URL *.workers.dev fica como fallback de teste.
+  "workers_dev": true,
+  "routes": [{ "pattern": "mcp.ararahq.com/*", "zone_name": "ararahq.com" }],
+  // keytar é módulo nativo do login local (stdio). No Worker o token vem do header,
+  // então o keychain é trocado por um stub que falha alto se alguém tentar usar.
+  "alias": {
+    "keytar": "./src/worker/keytar-stub.ts",
+  },
+  // Os painéis MCP Apps (build/ui/*.html) são servidos só pelo binding, nunca por URL
+  // direta: run_worker_first garante que toda request passa pela policy do Worker.
+  "assets": {
+    "directory": "build/ui",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+  },
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 120, "period": 60 },
+    },
+  ],
+  "vars": {
+    "MCP_PUBLIC_URL": "https://mcp.ararahq.com/mcp",
+    "MCP_RESOURCE_METADATA_URL": "https://mcp.ararahq.com/.well-known/oauth-protected-resource/mcp",
+    "MCP_ALLOWED_HOSTS": "mcp.ararahq.com,ararahq-mcp.micasmarques1132.workers.dev,localhost",
+    "MCP_ALLOWED_ORIGINS": "https://chatgpt.com,https://claude.ai",
+    "ARARA_OAUTH_ISSUER": "https://api.ararahq.com/api",
+    "ARARA_API_URL": "https://api.ararahq.com/api",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}
