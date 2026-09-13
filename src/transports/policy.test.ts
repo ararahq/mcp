@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { extractBearer, isOriginAllowed, policyFromEnv } from "./policy.js";
+import {
+  createMemoryIdentityCache,
+  extractBearer,
+  fingerprint,
+  isOriginAllowed,
+  policyFromEnv,
+} from "./policy.js";
 
 describe("hosted policy", () => {
   it("falls back to production defaults and lowercases lists", () => {
@@ -21,5 +27,21 @@ describe("hosted policy", () => {
     expect(extractBearer("bearer abc")).toBe("abc");
     expect(extractBearer("Basic abc")).toBeNull();
     expect(extractBearer(null)).toBeNull();
+  });
+
+  it("fingerprints secrets as stable sha-256 hex", async () => {
+    const hash = await fingerprint("abc");
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(await fingerprint("abc")).toBe(hash);
+    expect(await fingerprint("abd")).not.toBe(hash);
+  });
+
+  it("expires memory cache entries after the ttl", async () => {
+    let clock = 1_000;
+    const cache = createMemoryIdentityCache(60, () => clock);
+    await cache.set("k", { name: "A", email: "a@x" });
+    expect(await cache.get("k")).toEqual({ name: "A", email: "a@x" });
+    clock += 61_000;
+    expect(await cache.get("k")).toBeUndefined();
   });
 });

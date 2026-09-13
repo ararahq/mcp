@@ -4,11 +4,14 @@ import { SERVER_NAME, SERVER_VERSION } from "../config.js";
 import { createServer, type ServerOptions } from "../server/create.js";
 import {
   extractBearer,
+  fingerprint,
   isHostAllowed,
   isOriginAllowed,
   protectedResourceMetadata,
   validateToken,
   type HostedPolicy,
+  type Identity,
+  type IdentityCache,
 } from "./policy.js";
 
 const MCP_PATH = "/mcp";
@@ -19,11 +22,13 @@ const METADATA_PATHS = new Set([
 ]);
 const CORS_METHODS = "POST, OPTIONS";
 const CORS_HEADERS = "Authorization, Content-Type, MCP-Protocol-Version, Mcp-Session-Id";
+const RETRY_AFTER_SECONDS = "60";
 
 export type WebHandlerOptions = ServerOptions & {
   policy: HostedPolicy;
-  /** Returns true when the caller is over its budget. Absent means no limit at this layer. */
-  isRateLimited?: (request: Request) => Promise<boolean>;
+  identityCache?: IdentityCache;
+  /** Returns true when this user is over budget. Absent means no limit at this layer. */
+  isRateLimited?: (userKey: string) => Promise<boolean>;
 };
 
 const json = (status: number, body: unknown, headers: Record<string, string> = {}): Response =>
@@ -52,11 +57,26 @@ const unauthorized = (policy: HostedPolicy): Response =>
     { "WWW-Authenticate": `Bearer resource_metadata="${policy.metadataUrl}"` },
   );
 
+const rateLimited = (): Response =>
+  json(
+    429,
+    { error: { code: "RATE_LIMITED", message: "Too many requests for this user." } },
+    { "Retry-After": RETRY_AFTER_SECONDS },
+  );
+
+/** Rate limits are per authenticated user, never per IP, so shared NATs do not collide. */
+const overBudget = async (options: WebHandlerOptions, identity: Identity): Promise<boolean> => {
+  if (options.isRateLimited === undefined) return false;
+  return options.isRateLimited(`user:${await fingerprint(identity.email.toLowerCase())}`);
+};
+
 const handleMcp = async (request: Request, options: WebHandlerOptions): Promise<Response> => {
   const token = extractBearer(request.headers.get("authorization"));
-  if (token === null || !(await validateToken(options.policy, token))) {
-    return unauthorized(options.policy);
-  }
+  if (token === null) return unauthorized(options.policy);
+  const identity = await validateToken(options.policy, token, options.identityCache);
+  if (identity === null) return unauthorized(options.policy);
+  if (await overBudget(options, identity)) return rateLimited();
+
   const server = createServer({ loadPanel: options.loadPanel });
   const transport = new WebStandardStreamableHTTPServerTransport({});
   await server.connect(transport);
@@ -100,16 +120,6 @@ export const createWebHandler =
     }
     if (request.method === "OPTIONS") {
       return withCors(new Response(null, { status: 204 }), origin);
-    }
-    if (options.isRateLimited !== undefined && (await options.isRateLimited(request))) {
-      return withCors(
-        json(
-          429,
-          { error: { code: "RATE_LIMITED", message: "Too many requests." } },
-          { "Retry-After": "60" },
-        ),
-        origin,
-      );
     }
     return withCors(await route(request, options), origin);
   };

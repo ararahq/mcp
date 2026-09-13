@@ -1,5 +1,7 @@
-import { RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+/** MIME type hosts use to recognise an MCP Apps panel resource. */
+export const RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
 
 export const UI_PANELS = {
   campaign: "Campaign report with funnel, live progress and next actions.",

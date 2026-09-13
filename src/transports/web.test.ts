@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { policyFromEnv } from "./policy.js";
+import { createMemoryIdentityCache, policyFromEnv } from "./policy.js";
 import { createWebHandler } from "./web.js";
 
 const policy = policyFromEnv({
@@ -105,14 +105,28 @@ describe("hosted web handler", () => {
     expect(text).toContain("ararahq-mcp");
   });
 
-  it("applies the runtime rate limiter when provided", async () => {
-    const limited = createWebHandler({
-      policy,
-      loadPanel,
-      isRateLimited: () => Promise.resolve(true),
-    });
-    const response = await limited(request("/health"));
+  it("rate limits per authenticated user, after the bearer is validated", async () => {
+    const isRateLimited = vi.fn<(userKey: string) => Promise<boolean>>(() => Promise.resolve(true));
+    const limited = createWebHandler({ policy, loadPanel, isRateLimited });
+    expect((await limited(request("/health"))).status).toBe(200);
+    expect((await limited(mcpInit({ authorization: "Bearer nope" }))).status).toBe(401);
+    const response = await limited(mcpInit({ authorization: "Bearer good" }));
     expect(response.status).toBe(429);
     expect(response.headers.get("retry-after")).toBe("60");
+    expect(isRateLimited).toHaveBeenCalledTimes(1);
+    expect(isRateLimited.mock.calls[0]?.[0]).toMatch(/^user:[0-9a-f]{64}$/);
+  });
+
+  it("serves repeat calls from the identity cache without hitting the API", async () => {
+    const cache = createMemoryIdentityCache();
+    const cached = createWebHandler({ policy, loadPanel, identityCache: cache });
+    await cached(mcpInit({ authorization: "Bearer good" }));
+    await cached(mcpInit({ authorization: "Bearer good" }));
+    const identityCalls = vi.mocked(globalThis.fetch).mock.calls.filter((call) => {
+      const input = call[0];
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      return url.endsWith("/auth/me");
+    });
+    expect(identityCalls).toHaveLength(1);
   });
 });

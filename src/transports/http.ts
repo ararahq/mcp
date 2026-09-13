@@ -2,7 +2,7 @@ import express, { type Request, type Response } from "express";
 import rateLimit from "express-rate-limit";
 import { getHttpPort, SERVER_VERSION } from "../config.js";
 import { loadPanelFromDisk } from "../ui/panel-files.js";
-import { policyFromEnv } from "./policy.js";
+import { createMemoryIdentityCache, policyFromEnv } from "./policy.js";
 import { createWebHandler } from "./web.js";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -52,6 +52,7 @@ export const runHttp = async (): Promise<void> => {
   const handler = createWebHandler({
     policy: policyFromEnv(process.env),
     loadPanel: loadPanelFromDisk(),
+    identityCache: createMemoryIdentityCache(),
   });
   const app = express();
   app.disable("x-powered-by");

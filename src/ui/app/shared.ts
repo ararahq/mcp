@@ -1,15 +1,10 @@
-import {
-  App,
-  applyDocumentTheme,
-  applyHostFonts,
-  applyHostStyleVariables,
-} from "@modelcontextprotocol/ext-apps";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { readEnvelope, type ToolEnvelope } from "../model/envelope.js";
 import { formatInteger } from "../model/format.js";
+import { createBridge, windowChannel, type Bridge, type HostContext } from "./bridge.js";
 
 export const APP_VERSION = "6.0.0";
 const COUNT_UP_MS = 700;
+const FONTS_STYLE_ID = "__mcp-host-fonts";
 
 export type Panel = {
   root: HTMLElement;
@@ -23,41 +18,76 @@ type PanelHandlers<T> = {
   onInput?: (panel: Panel, args: Record<string, unknown>) => void;
 };
 
-type HostContext = ReturnType<App["getHostContext"]>;
-
-const applyContext = (context: HostContext): void => {
-  if (context === undefined) return;
-  if (context.theme !== undefined) applyDocumentTheme(context.theme);
-  if (context.styles?.variables !== undefined) applyHostStyleVariables(context.styles.variables);
+/** Mirrors the host theme onto the document: theme attribute, CSS variables and fonts. */
+export const applyHostContext = (
+  context: HostContext,
+  root: HTMLElement = document.documentElement,
+): void => {
+  if (context.theme !== undefined) {
+    root.setAttribute("data-theme", context.theme);
+    root.style.colorScheme = context.theme;
+  }
+  for (const [key, value] of Object.entries(context.styles?.variables ?? {})) {
+    if (typeof value === "string") root.style.setProperty(key, value);
+  }
   const fonts = context.styles?.css?.fonts;
-  if (typeof fonts === "string" && fonts.length > 0) applyHostFonts(fonts);
+  if (
+    typeof fonts === "string" &&
+    fonts.length > 0 &&
+    document.getElementById(FONTS_STYLE_ID) === null
+  ) {
+    const style = document.createElement("style");
+    style.id = FONTS_STYLE_ID;
+    style.textContent = fonts;
+    document.head.append(style);
+  }
+};
+
+/** Tells the host how tall the panel is, so the iframe follows the content. */
+const watchSize = (bridge: Bridge): void => {
+  let lastWidth = 0;
+  let lastHeight = 0;
+  let scheduled = false;
+  const measure = (): void => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      const html = document.documentElement;
+      const previous = html.style.height;
+      html.style.height = "max-content";
+      const height = Math.ceil(html.getBoundingClientRect().height);
+      html.style.height = previous;
+      const width = Math.ceil(window.innerWidth);
+      if (width === lastWidth && height === lastHeight) return;
+      lastWidth = width;
+      lastHeight = height;
+      bridge.sizeChanged(width, height);
+    });
+  };
+  measure();
+  const observer = new ResizeObserver(measure);
+  observer.observe(document.documentElement);
+  observer.observe(document.body);
 };
 
 /** Boots one panel: connects to the host, applies its theme and wires tool events. */
 export const bootPanel = async <T>(handlers: PanelHandlers<T>): Promise<Panel> => {
-  const app = new App({ name: `arara-${handlers.name}`, version: APP_VERSION });
   const root = document.getElementById("app");
   if (root === null) throw new Error("Panel root missing.");
-
+  const bridge = createBridge(windowChannel(), {
+    onToolResult: (result) => handlers.onResult(panel, readEnvelope<T>(result.structuredContent)),
+    onToolInput: (args) => handlers.onInput?.(panel, args),
+    onHostContext: applyHostContext,
+  });
   const panel: Panel = {
     root,
-    callTool: async <R>(name: string, args: Record<string, unknown>) => {
-      const result: CallToolResult = await app.callServerTool({ name, arguments: args });
-      return readEnvelope<R>(result.structuredContent);
-    },
-    ask: async (text: string) => {
-      await app.sendMessage({ role: "user", content: [{ type: "text", text }] });
-    },
+    callTool: async <R>(name: string, args: Record<string, unknown>) =>
+      readEnvelope<R>((await bridge.callTool(name, args)).structuredContent),
+    ask: (text) => bridge.sendMessage(text),
   };
-
-  app.ontoolresult = (result) =>
-    handlers.onResult(panel, readEnvelope<T>(result.structuredContent));
-  app.ontoolinput = (params) => {
-    handlers.onInput?.(panel, params.arguments ?? {});
-  };
-  app.onhostcontextchanged = (context) => applyContext(context);
-  await app.connect();
-  applyContext(app.getHostContext());
+  applyHostContext(await bridge.connect(`arara-${handlers.name}`, APP_VERSION));
+  watchSize(bridge);
   return panel;
 };
 

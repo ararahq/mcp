@@ -6,6 +6,7 @@ export const DEFAULT_ALLOWED_ORIGINS = ["https://chatgpt.com", "https://claude.a
 export const DEFAULT_PUBLIC_URL = "https://mcp.ararahq.com/mcp";
 export const DEFAULT_METADATA_URL =
   "https://mcp.ararahq.com/.well-known/oauth-protected-resource/mcp";
+export const IDENTITY_CACHE_TTL_SECONDS = 60;
 
 /** Everything the hosted transport needs to decide who may talk to it. */
 export type HostedPolicy = {
@@ -16,6 +17,18 @@ export type HostedPolicy = {
   oauthIssuer: string;
   scopes: string[];
   apiBaseUrl: string;
+};
+
+export type Identity = { name: string; email: string };
+
+/**
+ * Short-lived memory of which bearer maps to which identity, keyed by a token
+ * fingerprint. Saves one API round trip per tool call inside the TTL. The token
+ * itself is never stored.
+ */
+export type IdentityCache = {
+  get: (fingerprint: string) => Promise<Identity | undefined>;
+  set: (fingerprint: string, identity: Identity) => Promise<void>;
 };
 
 const splitList = (raw: string | undefined, fallback: string[]): string[] =>
@@ -61,16 +74,61 @@ export const protectedResourceMetadata = (policy: HostedPolicy): Record<string, 
   scopes_supported: policy.scopes,
 });
 
-/** Validates a bearer against the API identity endpoint with the platform fetch. */
-export const validateToken = async (policy: HostedPolicy, token: string): Promise<boolean> => {
+/** SHA-256 hex of any secret, so caches and rate-limit keys never hold the value itself. */
+export const fingerprint = async (value: string): Promise<string> => {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const fetchIdentity = async (policy: HostedPolicy, token: string): Promise<Identity | null> => {
   try {
     const response = await fetch(`${policy.apiBaseUrl}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
-    if (!response.ok) return false;
-    return identitySchema.safeParse(await response.json()).success;
+    if (!response.ok) return null;
+    const parsed = identitySchema.safeParse(await response.json());
+    return parsed.success ? { name: parsed.data.name, email: parsed.data.email } : null;
   } catch {
-    return false;
+    return null;
   }
+};
+
+/** Resolves a bearer to its identity, through the cache when one is given. */
+export const validateToken = async (
+  policy: HostedPolicy,
+  token: string,
+  cache?: IdentityCache,
+): Promise<Identity | null> => {
+  const key = cache === undefined ? undefined : await fingerprint(token);
+  if (cache !== undefined && key !== undefined) {
+    const cached = await cache.get(key);
+    if (cached !== undefined) return cached;
+  }
+  const identity = await fetchIdentity(policy, token);
+  if (identity !== null && cache !== undefined && key !== undefined) await cache.set(key, identity);
+  return identity;
+};
+
+/** Process-local cache for the Node runtime. Entries expire after the TTL. */
+export const createMemoryIdentityCache = (
+  ttlSeconds = IDENTITY_CACHE_TTL_SECONDS,
+  now: () => number = Date.now,
+): IdentityCache => {
+  const entries = new Map<string, { identity: Identity; expiresAt: number }>();
+  return {
+    get: (key) => {
+      const entry = entries.get(key);
+      if (entry === undefined) return Promise.resolve(undefined);
+      if (entry.expiresAt <= now()) {
+        entries.delete(key);
+        return Promise.resolve(undefined);
+      }
+      return Promise.resolve(entry.identity);
+    },
+    set: (key, identity) => {
+      entries.set(key, { identity, expiresAt: now() + ttlSeconds * 1_000 });
+      return Promise.resolve();
+    },
+  };
 };

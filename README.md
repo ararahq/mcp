@@ -37,7 +37,7 @@ Four tools ship an interactive panel that hosts with MCP Apps support (Claude De
 | `check_status`      | Delivery timeline (accepted, sent, delivered, read) that polls until a final state.          |
 | `read_conversation` | Chat thread with an inline reply box that calls `send_whatsapp`.                             |
 
-Panels are single-file HTML bundles built by `scripts/build-ui.mjs` into `build/ui/` and served as `ui://arara/<panel>.html` resources with the `text/html;profile=mcp-app` MIME type. They call tools through the host (`callServerTool`) and hand follow-ups back to the chat (`sendMessage`); they never hold credentials.
+Panels are single-file HTML bundles (about 15 KB each) built by `scripts/build-ui.mjs` into `build/ui/` and served as `ui://arara/<panel>.html` resources with the `text/html;profile=mcp-app` MIME type. They speak the MCP Apps protocol through a small postMessage bridge of their own (`src/ui/app/bridge.ts`), call tools through the host and hand follow-ups back to the chat; they never hold credentials.
 
 ## Local installation
 
@@ -75,7 +75,7 @@ npx -y @ararahq/mcp logout
 
 The hosted server uses stateless MCP Streamable HTTP at `POST /mcp`. It accepts OAuth bearer tokens only in the `Authorization` header. Query-string credentials, API-key tool arguments, legacy SSE endpoints, permissive CORS and debug endpoints do not exist.
 
-One Web Standard handler (`src/transports/web.ts`) serves every runtime. Host and origin allowlists, the OAuth challenge, the protected resource metadata and the panel assets behave the same everywhere.
+One Web Standard handler (`src/transports/web.ts`) serves every runtime. Host and origin allowlists, the OAuth challenge, the protected resource metadata and the panel assets behave the same everywhere. The bearer is resolved to an identity once per minute per token (Cache API on Workers, memory on Node; only a token fingerprint and the name and e-mail are stored), and rate limits are counted per authenticated user, not per IP.
 
 **Cloudflare Workers** is the production target. `wrangler.jsonc` declares the assets binding for the panels, a rate limiter and the public variables; the native keychain module is aliased to a stub so it never enters the bundle. A merge on `main` deploys through `.github/workflows/deploy.yml` once `CLOUDFLARE_API_TOKEN` exists.
 
