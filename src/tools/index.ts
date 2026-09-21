@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiRequest } from "../lib/api.js";
 import { balanceSchema, identitySchema, planSchema } from "../lib/schemas.js";
 import { execute } from "../mcp/result.js";
+import { AUTOMATION_TOOL_NAMES, registerAutomationTools } from "./automations.js";
 import { registerCampaignTools } from "./campaigns.js";
 import { registerContactTools } from "./contacts.js";
 import { readOnly, register } from "./register.js";
@@ -20,6 +21,7 @@ export const TOOL_NAMES = [
   "save_contacts",
   "opt_out",
   "read_conversation",
+  ...AUTOMATION_TOOL_NAMES,
 ] as const;
 
 const registerWhoami = (server: McpServer): void => {
@@ -51,4 +53,5 @@ export const registerAllTools = (server: McpServer): void => {
   registerCampaignTools(server);
   registerTemplateTools(server);
   registerContactTools(server);
+  registerAutomationTools(server);
 };
