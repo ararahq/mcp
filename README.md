@@ -6,7 +6,7 @@ Node.js is the only implementation, OAuth is the authentication boundary, and bo
 
 ## What it exposes
 
-Nine tools, on purpose. An agent works better with a few actions that accept what a person knows by heart (a name, a phone in any format) and resolve the rest.
+Nine everyday tools, on purpose. An agent works better with a few actions that accept what a person knows by heart (a name, a phone in any format) and resolve the rest.
 
 | Tool                | What it does                                                                                                         |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -19,6 +19,20 @@ Nine tools, on purpose. An agent works better with a few actions that accept wha
 | `save_contacts`     | Create or update up to 1000 contacts so you can message by name.                                                     |
 | `opt_out`           | Record that someone asked to stop. Every later send to them is blocked.                                              |
 | `read_conversation` | The raw message timeline with one person, newest first, so you can judge a reply before answering.                   |
+
+Automations (flows that react to a trigger and send on their own) add nine more:
+
+| Tool                        | What it does                                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `list_automations`          | Every automation with trigger, steps, active state, cost per run and run stats. Trigger URLs are left out.     |
+| `get_automation`            | One automation in full, including its trigger URLs, which are secrets for the user's own system.               |
+| `list_automation_templates` | Approved templates a step may use, with unit price and charge button, plus the price of a session message.     |
+| `create_automation`         | Create a flow (message, wait, condition, tag, question, wait_payment). Always born inactive; never activates.  |
+| `update_automation`         | Replace the whole definition of a flow. Does not change whether it is active.                                  |
+| `set_automation_active`     | Turn a flow on or off. Turning on is a dry run by default: flow and cost first, `dryRun=false` to go live.     |
+| `delete_automation`         | Permanently delete a flow. Dry run by default.                                                                 |
+| `list_automation_runs`      | Who went through a flow, or the event trail of one run ("why did this person stop here?").                     |
+| `manage_automation_hook`    | Regenerate the trigger URL or switch its HMAC signature. Dry run by default; the signing secret is shown once. |
 
 Resources (`arara://organization`, `arara://templates/approved`, `arara://campaigns/recent`, `arara://channels`) give read-only context without a tool call. Prompts `plan_broadcast`, `campaign_review` and `reply_to_responses` package the three everyday flows and always stop for approval before a write.
 
@@ -110,6 +124,8 @@ AraraHQ currently issues installed-client OAuth tokens through its device author
 - `broadcast` never drops recipients silently: names that do not resolve are returned next to the campaign id.
 - Message acceptance means queued, not delivered. Delivery is checked with `check_status`.
 - Every mutating call carries an `Idempotency-Key`, so retries are safe.
+- `set_automation_active` (when turning on), `delete_automation` and `manage_automation_hook` follow the same dry-run contract as `broadcast`: nothing happens until `dryRun` is false. `create_automation` cannot activate a flow.
+- Automation payloads are checked locally for shape (lowercase wire values, step types, at most two branching levels); business rules stay with the API, whose refusal sentence is returned as is. A bare 403 becomes `AUTOMATIONS_PERMISSION_REQUIRED` with where to enable the permission.
 - `broadcast` is a dry run unless `dryRun` is false. The preview resolves names, renders the template with the first contact's variables and calls the cost estimator, so approval happens with the real numbers.
 
 ## Development
@@ -132,6 +148,7 @@ The former unscoped package `ararahq-mcp` is the frozen v4 distribution. Version
 - Retries are limited to safe methods or requests carrying an idempotency key and honor `Retry-After`.
 - All consumed API payloads are validated before fields are used.
 - Hosted requests are rate-limited and checked against explicit host and origin allowlists.
+- Automation trigger URLs carry a token and are returned only by `get_automation`; the hook signing secret appears once, in the structured result of the call that enables it, never in text content.
 - No telemetry is collected by this package.
 
 Report vulnerabilities privately to `security@ararahq.com`.
