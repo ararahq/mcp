@@ -59,35 +59,32 @@ export type AutomationStepInput = {
   branches?: Record<string, AutomationStepInput[]> | undefined;
 };
 
-const branchesSchema: z.ZodType<
-  Record<string, AutomationStepInput[]>,
-  z.ZodTypeDef,
-  unknown
-> = z.lazy(() => z.record(z.array(automationStepSchema)));
+const branchesSchema: z.ZodType<Record<string, AutomationStepInput[]>, unknown> = z.lazy(() =>
+  z.record(z.string(), z.array(automationStepSchema)),
+);
 
-export const automationStepSchema: z.ZodType<AutomationStepInput, z.ZodTypeDef, unknown> = z.lazy(
-  () =>
-    z.discriminatedUnion("type", [
-      z.object({ type: z.literal("message"), config: messageConfigSchema }).strict(),
-      z
-        .object({
-          type: z.literal("wait"),
-          config: z.object({ minutes: z.number().int().min(1) }).passthrough(),
-        })
-        .strict(),
-      z.object({ type: z.literal("condition"), config: tagConfigSchema }).strict(),
-      z.object({ type: z.literal("tag"), config: tagConfigSchema }).strict(),
-      z.object({
-        type: z.literal("question"),
-        config: questionConfigSchema,
-        branches: branchesSchema.optional(),
-      }),
-      z.object({
-        type: z.literal("wait_payment"),
-        config: timeoutConfigSchema,
-        branches: branchesSchema.optional(),
-      }),
-    ]),
+export const automationStepSchema: z.ZodType<AutomationStepInput, unknown> = z.lazy(() =>
+  z.discriminatedUnion("type", [
+    z.object({ type: z.literal("message"), config: messageConfigSchema }).strict(),
+    z
+      .object({
+        type: z.literal("wait"),
+        config: z.object({ minutes: z.number().int().min(1) }).passthrough(),
+      })
+      .strict(),
+    z.object({ type: z.literal("condition"), config: tagConfigSchema }).strict(),
+    z.object({ type: z.literal("tag"), config: tagConfigSchema }).strict(),
+    z.object({
+      type: z.literal("question"),
+      config: questionConfigSchema,
+      branches: branchesSchema.optional(),
+    }),
+    z.object({
+      type: z.literal("wait_payment"),
+      config: timeoutConfigSchema,
+      branches: branchesSchema.optional(),
+    }),
+  ]),
 );
 
 const branchingLevels = (steps: AutomationStepInput[]): number =>
@@ -107,7 +104,7 @@ export const automationStepsSchema = z
 export const automationDefinitionShape = {
   name: z.string().trim().min(1).max(MAX_NAME),
   trigger: z.enum(AUTOMATION_TRIGGERS),
-  triggerConfig: z.record(jsonValueSchema).optional(),
+  triggerConfig: z.record(z.string(), jsonValueSchema).optional(),
   steps: automationStepsSchema,
 };
 export const automationDefinitionSchema = z.object(automationDefinitionShape);
@@ -120,13 +117,13 @@ export const automationSchema = z
     id: z.string(),
     name: z.string(),
     trigger: z.string(),
-    triggerConfig: z.record(jsonValueSchema).nullable().optional(),
+    triggerConfig: z.record(z.string(), jsonValueSchema).nullable().optional(),
     active: z.boolean(),
     steps: z.array(jsonValueSchema),
     costPerRunBrl: moneySchema,
     webhookUrl: z.string().nullable().optional(),
     hook: hookSchema.nullable().optional(),
-    stats: z.record(jsonValueSchema).nullable().optional(),
+    stats: z.record(z.string(), jsonValueSchema).nullable().optional(),
   })
   .passthrough();
 export const automationsSchema = z.array(automationSchema);
@@ -144,7 +141,7 @@ export const automationTemplateOptionsSchema = z.array(
 );
 export const automationPricingSchema = z.object({ sessionUnitPriceBrl: moneySchema }).passthrough();
 export const automationPageSchema = z.object({
-  data: z.array(z.record(jsonValueSchema)),
+  data: z.array(z.record(z.string(), jsonValueSchema)),
   pagination: paginationSchema,
 });
 export const emptyResponseSchema = z.unknown();

@@ -1,7 +1,7 @@
 name: ararahq-mcp
 displayName: AraraHQ MCP
 description: Official AraraHQ MCP for WhatsApp broadcasts and campaigns. Send to your base, see what came back, answer who replied.
-homepage: https://ararahq.com/mcp
+homepage: https://docs.ararahq.com/mcp-server
 repository: https://github.com/ararahq/mcp
 license: MIT
 author: AraraHQ
@@ -14,7 +14,6 @@ keywords:
 
 transports:
   - stdio
-  - streamable-http
 
 runtime:
   command: npx

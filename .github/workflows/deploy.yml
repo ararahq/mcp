@@ -36,8 +36,6 @@ jobs:
           fi
 
       - if: steps.guard.outputs.ready == 'true'
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
-      - if: steps.guard.outputs.ready == 'true'
         run: npm ci
       - if: steps.guard.outputs.ready == 'true'
         run: npm run build

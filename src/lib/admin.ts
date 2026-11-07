@@ -1,12 +1,12 @@
 import type { Method } from "axios";
-import type { ZodType, ZodTypeDef } from "zod";
+import type { ZodType } from "zod";
 import { apiRequest } from "./api.js";
 import { AraraError } from "./errors.js";
 
 type AdminRequestOptions<T> = {
   method?: Method;
   body?: unknown;
-  schema: ZodType<T, ZodTypeDef, unknown>;
+  schema: ZodType<T, unknown>;
   idempotencyKey?: string;
 };
 

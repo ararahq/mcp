@@ -1,5 +1,5 @@
 import axios, { type Method } from "axios";
-import type { ZodType, ZodTypeDef } from "zod";
+import type { ZodType } from "zod";
 import { API_TIMEOUT_MS, getApiBaseUrl, MAX_RETRIES } from "../config.js";
 import { getAccessToken } from "../auth/tokens.js";
 import { AraraError, toAraraError } from "./errors.js";
@@ -7,7 +7,7 @@ import { AraraError, toAraraError } from "./errors.js";
 type RequestOptions<T> = {
   method?: Method;
   body?: unknown;
-  schema: ZodType<T, ZodTypeDef, unknown>;
+  schema: ZodType<T, unknown>;
   idempotencyKey?: string;
   retry?: boolean;
   /** Extra headers merged into the request (e.g. X-Admin-Secret). Never logged or echoed. */

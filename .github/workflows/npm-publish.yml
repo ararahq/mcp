@@ -26,9 +26,6 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
-      - name: Install native build dependency
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
-
       - name: Install
         run: npm ci
 

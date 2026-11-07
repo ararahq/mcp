@@ -26,7 +26,7 @@ const contactSchema = z.object({
   name: z.string().trim().min(1).max(MAX_CONTACT_NAME),
   phone: e164Schema,
   email: z.string().email().max(MAX_EMAIL).optional(),
-  attributes: z.record(jsonValueSchema).optional(),
+  attributes: z.record(z.string(), jsonValueSchema).optional(),
 });
 const contactsSchema = z.array(contactSchema).min(1).max(MAX_CONTACTS_PER_BATCH);
 

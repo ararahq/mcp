@@ -65,15 +65,13 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "axios": "^1.18.0",
-    "dotenv": "^17.3.1",
-    "express": "^4.22.1",
-    "express-rate-limit": "^8.2.1",
-    "keytar": "^7.9.0",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
+  },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@types/express": "^4.17.21",
     "@types/node": "^22.19.11",
     "esbuild": "^0.28.2",
     "eslint": "^9.39.2",

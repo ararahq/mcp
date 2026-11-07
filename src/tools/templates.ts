@@ -36,7 +36,7 @@ const registerCreateTemplate = (server: McpServer): void => {
       header: z.string().trim().min(1).optional(),
       headerType: z.enum(["text", "media", "document"]).optional(),
       footer: z.string().trim().min(1).max(MAX_FOOTER).optional(),
-      samples: z.record(z.string()).optional(),
+      samples: z.record(z.string(), z.string()).optional(),
       buttons: z.array(buttonSchema).max(MAX_BUTTONS).optional(),
     },
     write,

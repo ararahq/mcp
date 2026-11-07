@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMemoryIdentityCache, policyFromEnv } from "./policy.js";
+import { type Identity, type IdentityCache, policyFromEnv } from "./policy.js";
 import { createWebHandler } from "./web.js";
 
 const policy = policyFromEnv({
@@ -118,7 +118,14 @@ describe("hosted web handler", () => {
   });
 
   it("serves repeat calls from the identity cache without hitting the API", async () => {
-    const cache = createMemoryIdentityCache();
+    const entries = new Map<string, Identity>();
+    const cache: IdentityCache = {
+      get: (key) => Promise.resolve(entries.get(key)),
+      set: (key, identity) => {
+        entries.set(key, identity);
+        return Promise.resolve();
+      },
+    };
     const cached = createWebHandler({ policy, loadPanel, identityCache: cache });
     await cached(mcpInit({ authorization: "Bearer good" }));
     await cached(mcpInit({ authorization: "Bearer good" }));
