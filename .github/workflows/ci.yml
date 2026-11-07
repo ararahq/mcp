@@ -1,9 +1,8 @@
 name: CI
 
+# Na main quem verifica é o npm-publish.yml (npm run check antes de publicar).
 on:
   pull_request:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -17,7 +16,6 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
       - run: npm ci
       - run: npm run check
       - run: npm audit --omit=dev --audit-level=high
