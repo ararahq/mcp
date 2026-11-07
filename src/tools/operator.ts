@@ -47,12 +47,12 @@ const failureBreakdownSchema = z
     windowHours: z.number(),
     totalMessages: z.number(),
     totalFailures: z.number(),
-    byReason: z.record(z.number()),
-    byTemplate: z.record(z.number()),
-    topCodes: z.record(z.number()),
+    byReason: z.record(z.string(), z.number()),
+    byTemplate: z.record(z.string(), z.number()),
+    topCodes: z.record(z.string(), z.number()),
   })
   .passthrough();
-const anyRecordSchema = z.record(jsonValueSchema);
+const anyRecordSchema = z.record(z.string(), jsonValueSchema);
 
 export const filterTemplates = (
   templates: z.infer<typeof templatesSchema>,

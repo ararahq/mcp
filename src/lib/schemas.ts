@@ -7,16 +7,16 @@ export const jsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
     z.boolean(),
     z.null(),
     z.array(jsonValueSchema),
-    z.record(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
   ]),
 );
 
 export const identitySchema = z
   .object({ name: z.string(), email: z.string().email() })
   .passthrough();
-export const planSchema = z.record(jsonValueSchema);
-export const balanceSchema = z.record(jsonValueSchema);
-export const mutationSchema = z.record(jsonValueSchema);
+export const planSchema = z.record(z.string(), jsonValueSchema);
+export const balanceSchema = z.record(z.string(), jsonValueSchema);
+export const mutationSchema = z.record(z.string(), jsonValueSchema);
 
 export const paginationSchema = z.object({
   page: z.number().int().nonnegative(),
@@ -153,7 +153,7 @@ export const campaignDetailSchema = campaignListItemSchema.extend({
   refundValue: z.number().default(0),
 });
 
-export const numberSchema = z.record(jsonValueSchema);
+export const numberSchema = z.record(z.string(), jsonValueSchema);
 export const numbersSchema = z.object({
   numbers: z.array(numberSchema),
   slot: jsonValueSchema.nullable().optional(),

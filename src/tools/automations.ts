@@ -45,7 +45,7 @@ const invalidInput = (error: z.ZodError): AraraError => {
   return new AraraError("INVALID_INPUT", details, 400, false);
 };
 
-const parseInput = <T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, input: unknown): T => {
+const parseInput = <T>(schema: z.ZodType<T, unknown>, input: unknown): T => {
   const parsed = schema.safeParse(input);
   if (!parsed.success) throw invalidInput(parsed.error);
   return parsed.data;
