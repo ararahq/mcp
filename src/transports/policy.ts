@@ -109,26 +109,3 @@ export const validateToken = async (
   if (identity !== null && cache !== undefined && key !== undefined) await cache.set(key, identity);
   return identity;
 };
-
-/** Process-local cache for the Node runtime. Entries expire after the TTL. */
-export const createMemoryIdentityCache = (
-  ttlSeconds = IDENTITY_CACHE_TTL_SECONDS,
-  now: () => number = Date.now,
-): IdentityCache => {
-  const entries = new Map<string, { identity: Identity; expiresAt: number }>();
-  return {
-    get: (key) => {
-      const entry = entries.get(key);
-      if (entry === undefined) return Promise.resolve(undefined);
-      if (entry.expiresAt <= now()) {
-        entries.delete(key);
-        return Promise.resolve(undefined);
-      }
-      return Promise.resolve(entry.identity);
-    },
-    set: (key, identity) => {
-      entries.set(key, { identity, expiresAt: now() + ttlSeconds * 1_000 });
-      return Promise.resolve();
-    },
-  };
-};

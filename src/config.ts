@@ -10,12 +10,3 @@ export const MAX_PAGE_SIZE = 100;
 
 export const getApiBaseUrl = (): string =>
   (process.env.ARARA_API_URL ?? DEFAULT_API_BASE_URL).replace(/\/$/, "");
-
-export const getHttpPort = (): number => {
-  const raw = process.env.PORT ?? "3333";
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65_535) {
-    throw new Error("PORT must be an integer between 1 and 65535.");
-  }
-  return parsed;
-};

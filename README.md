@@ -89,7 +89,7 @@ npx -y @ararahq/mcp logout
 
 The hosted server uses stateless MCP Streamable HTTP at `POST /mcp`. It accepts OAuth bearer tokens only in the `Authorization` header. Query-string credentials, API-key tool arguments, legacy SSE endpoints, permissive CORS and debug endpoints do not exist.
 
-One Web Standard handler (`src/transports/web.ts`) serves every runtime. Host and origin allowlists, the OAuth challenge, the protected resource metadata and the panel assets behave the same everywhere. The bearer is resolved to an identity once per minute per token (Cache API on Workers, memory on Node; only a token fingerprint and the name and e-mail are stored), and rate limits are counted per authenticated user, not per IP.
+One Web Standard handler (`src/transports/web.ts`) serves the hosted runtime: host and origin allowlists, the OAuth challenge, the protected resource metadata and the panel assets. The bearer is resolved to an identity once per minute per token (Cache API on Workers; only a token fingerprint and the name and e-mail are stored), and rate limits are counted per authenticated user, not per IP.
 
 **Cloudflare Workers** is the production target. `wrangler.jsonc` declares the assets binding for the panels, a rate limiter and the public variables; the native keychain module is aliased to a stub so it never enters the bundle. A merge on `main` deploys through `.github/workflows/deploy.yml` once `CLOUDFLARE_API_TOKEN` exists.
 
@@ -98,17 +98,7 @@ npm run cf:dev      # wrangler dev on http://127.0.0.1:8787
 npm run cf:deploy   # build + wrangler deploy to mcp.ararahq.com (and the workers.dev fallback)
 ```
 
-**Node** remains available for local runs of the hosted mode. It is a thin Express adapter over the same handler:
-
-```bash
-MCP_TRANSPORT=http \
-PORT=3333 \
-MCP_PUBLIC_URL=https://mcp.ararahq.com/mcp \
-MCP_ALLOWED_HOSTS=mcp.ararahq.com \
-MCP_ALLOWED_ORIGINS=https://chatgpt.com,https://claude.ai \
-ARARA_OAUTH_ISSUER=https://api.ararahq.com/api \
-npm start
-```
+For local runs of the hosted mode, use `npm run cf:dev`: it is the same Worker, on your machine.
 
 Protected Resource Metadata is served at:
 
@@ -137,7 +127,7 @@ npm audit --omit=dev
 npm pack --dry-run
 ```
 
-The server defaults to stdio. Use `MCP_TRANSPORT=http npm start` for Streamable HTTP. Override the API only for controlled environments with `ARARA_API_URL`.
+The npm package runs over stdio. Streamable HTTP is the hosted Worker (`npm run cf:dev` locally). Override the API only for controlled environments with `ARARA_API_URL`.
 
 The former unscoped package `ararahq-mcp` is the frozen v4 distribution. Version 5 was an Atendimento-oriented rewrite that never matched the product; version 6 is the broadcast-first server described here.
 

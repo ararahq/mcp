@@ -6,9 +6,8 @@
   // nodejs_compat: AsyncLocalStorage (contexto do bearer por request) e process.env
   // populado a partir de `vars`. Sem isso o SDK do MCP nem carrega.
   "compatibility_flags": ["nodejs_compat"],
-  // Produção: o DNS de mcp.ararahq.com é proxied pela Cloudflare, então esta rota
-  // intercepta no edge antes da EC2 (mesmo cutover do dash em 10/09). Reversível
-  // removendo a rota. A URL *.workers.dev fica como fallback de teste.
+  // Produção: o DNS de mcp.ararahq.com é proxied pela Cloudflare e esta rota é a
+  // única origem do servidor hospedado. A URL *.workers.dev fica como fallback de teste.
   "workers_dev": true,
   "routes": [{ "pattern": "mcp.ararahq.com/*", "zone_name": "ararahq.com" }],
   // keytar é módulo nativo do login local (stdio). No Worker o token vem do header,
