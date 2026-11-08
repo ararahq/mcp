@@ -38,7 +38,7 @@ Resources (`arara://organization`, `arara://templates/approved`, `arara://campai
 
 Every tool returns both human-readable content and stable structured content. Write tools carry MCP safety annotations. Credentials never appear in tool inputs or output.
 
-Operator tools (`create_api_key`, `list_api_keys`, `revoke_api_key`, `configure_webhook_route`, `list_templates`, `delete_template`, `template_health`, `list_failures`, `get_balance`, `add_credit`, `remove_credit`, `list_transactions`) exist for the AraraHQ team only and are gated server-side by an e-mail allowlist and an admin secret.
+Operator tools (`create_api_key`, `list_api_keys`, `revoke_api_key`, `list_templates`, `delete_template`, `template_health`, `list_failures`, `get_balance`, `add_credit`, `remove_credit`, `list_transactions`) exist for the AraraHQ team only and are gated server-side by an e-mail allowlist and an admin secret.
 
 ## Panels (MCP Apps)
 

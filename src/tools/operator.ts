@@ -86,7 +86,6 @@ export const OPERATOR_TOOL_NAMES = [
   "create_api_key",
   "list_api_keys",
   "revoke_api_key",
-  "configure_webhook_route",
   "list_templates",
   "delete_template",
   "template_health",
@@ -147,37 +146,6 @@ export const registerOperatorTools = (server: McpServer): void => {
           schema: z.unknown(),
         });
         return { data: { apiKeyId, revoked: true }, message: "API key revoked." };
-      }),
-  );
-
-  register(
-    server,
-    "configure_webhook_route",
-    "Configure the A/B template pool for an API key's webhook send route.",
-    {
-      apiKeyId: idSchema,
-      senderNumberId: idSchema,
-      templateIds: z.array(idSchema).min(1).max(20),
-      secondarySenderNumberId: idSchema.optional(),
-    },
-    idempotentWrite,
-    async (input) =>
-      execute(async () => {
-        const apiKeyId = idSchema.parse(input.apiKeyId);
-        return {
-          data: await apiRequest(`/v1/api-keys/${apiKeyId}/webhook-route`, {
-            method: "PUT",
-            body: {
-              senderNumberId: input.senderNumberId,
-              templateIds: input.templateIds,
-              ...(input.secondarySenderNumberId === undefined
-                ? {}
-                : { secondarySenderNumberId: input.secondarySenderNumberId }),
-            },
-            schema: anyRecordSchema,
-          }),
-          message: "Webhook route configured.",
-        };
       }),
   );
 
