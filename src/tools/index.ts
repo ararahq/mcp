@@ -9,8 +9,6 @@ import { readOnly, register } from "./register.js";
 import { registerSendTools } from "./send.js";
 import { registerTemplateTools } from "./templates.js";
 
-export { destructive, idempotentWrite, readOnly, register, write } from "./register.js";
-
 export const TOOL_NAMES = [
   "whoami",
   "send_whatsapp",
