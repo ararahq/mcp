@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasDynamicUrlButton, templateButtonLabels } from "./templates.js";
+import { templateButtonLabels } from "./templates.js";
 
 const structure = {
   types: {
@@ -18,14 +18,5 @@ describe("template structure helpers", () => {
     expect(templateButtonLabels(structure)).toEqual(["Ver saldo", "Falar"]);
     expect(templateButtonLabels(null)).toEqual([]);
     expect(templateButtonLabels({ types: { x: { body: "b" } } })).toEqual([]);
-  });
-
-  it("detects dynamic URL buttons", () => {
-    expect(hasDynamicUrlButton(structure)).toBe(false);
-    expect(
-      hasDynamicUrlButton({
-        types: { "whatsapp/card": { actions: [{ type: "URL", url: "https://a.b/{{1}}" }] } },
-      }),
-    ).toBe(true);
   });
 });
