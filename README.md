@@ -1,6 +1,8 @@
 # AraraHQ MCP
 
-Official Model Context Protocol server for AraraHQ: talk to your whole WhatsApp base, see what came back, answer who replied.
+Official WhatsApp MCP server (Model Context Protocol) for AraraHQ. It connects an AI agent to your company WhatsApp: talk to your whole base, see what came back, answer who replied.
+
+AraraHQ: WhatsApp for Brazilian companies. Team inbox with AI, campaigns and systems connected through the API.
 
 Node.js is the only implementation, OAuth is the authentication boundary, and both the npm scope and public repository are owned by AraraHQ: [`@ararahq/mcp`](https://www.npmjs.com/package/@ararahq/mcp) and [`ararahq/mcp`](https://github.com/ararahq/mcp).
 

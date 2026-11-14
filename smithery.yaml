@@ -1,6 +1,6 @@
 name: ararahq-mcp
 displayName: AraraHQ MCP
-description: Official AraraHQ MCP for WhatsApp broadcasts and campaigns. Send to your base, see what came back, answer who replied.
+description: "MCP server for the AraraHQ API. Send to your base, see what came back, answer who replied. AraraHQ: WhatsApp for Brazilian companies. Team inbox with AI, campaigns and systems connected through the API."
 homepage: https://docs.ararahq.com/mcp-server
 repository: https://github.com/ararahq/mcp
 license: MIT
