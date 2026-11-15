@@ -1,5 +1,5 @@
 export const SERVER_NAME = "ararahq-mcp";
-export const SERVER_VERSION = "6.0.1";
+export const SERVER_VERSION = "6.0.2";
 export const DEFAULT_API_BASE_URL = "https://api.ararahq.com/api";
 export const OAUTH_CLIENT_ID = "arara-mcp";
 export const OAUTH_SCOPE =
